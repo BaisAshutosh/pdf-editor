@@ -4,3 +4,5 @@ werkzeug
 urllib3
 requests
 wheel
+pikepdf
+pymupdf
