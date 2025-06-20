@@ -9,3 +9,4 @@ This project currently support following features -
 1. PDF merging.
 2. Split pdf - With this feature you can split all the pages of pdf and download them as zip.
 3. Extract pdf - This feature is the extension of split feature, with this you can provide page number you want to extract, and it will extract that page number and merge it and provide you.
+4. Sanitize pdf - with this feature I am trying to remove all harmful components that can affect user computer like executables bat, javascript files, embedded urls and any action/goto items. This feature still needs improvements because it is still not able to remove latex embedded action items and urls. I am trying to make it similar like ghost script but functionality is still not achieved yet completely but it can still remove most of the harmful components.
