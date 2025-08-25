@@ -198,6 +198,30 @@ def extract_pages():
     except Exception as e:
         return f"Failed to extract pages: {str(e)}", 500
 
+@app.post("/compress_pdf")
+def compress_pdf():
+        files = request.files.getlist("files")
+        compression_ratio = int(request.form["compression_ratio"])
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for file in files:
+                writer = PdfWriter(clone_from=io.BytesIO(file.read()))
+                for page in writer.pages:
+                    page.compress_content_streams(level = compression_ratio)
+                pdf_bytes = io.BytesIO()
+                writer.write(pdf_bytes)
+                pdf_bytes.seek(0)
+                split_filename = f"{file.filename}.pdf"
+                zip_file.writestr(split_filename, pdf_bytes.read())
+        zip_buffer.seek(0)
+        return send_file(
+            zip_buffer,
+            as_attachment=True,
+            download_name="compressed_pdf.zip",
+            mimetype="application/zip",
+        )
+        
+
 
 if __name__ == "__main__":
     app.run()

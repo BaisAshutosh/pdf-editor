@@ -165,4 +165,48 @@ document.addEventListener('DOMContentLoaded', function () {
                 resultDiv.innerHTML = 'An error occurred during extraction.';
             });
     });
+
+    // Handle compress
+    const compressForm = document.getElementById('compressFile');
+    const compressPdfFilesInput = document.getElementById('compressPdfFiles');
+    const compressionRatioInput = document.getElementById('compressionRatio');
+
+    compressForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        if (compressPdfFilesInput.files.length === 0) {
+            resultDiv.innerHTML = 'Please select at least one PDF file to compress.';
+            return;
+        }
+        const formData = new FormData();
+        for (const file of compressPdfFilesInput.files) {
+            formData.append('files', file);
+        }
+        formData.append('compression_ratio', compressionRatioInput.value);
+        fetch('/compress_pdf', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('Failed to compress PDFs');
+                }
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = encodeURIComponent('compressed_files.zip');
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                resultDiv.innerHTML = 'Compressed ZIP downloaded.';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultDiv.innerHTML = 'An error occurred during compression.';
+            });
+    });
 });
