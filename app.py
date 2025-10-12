@@ -6,7 +6,6 @@ import zipfile
 import fitz
 
 app = Flask(__name__)
-app.config["UPLOAD_FOLDER"] = "uploads/"
 
 
 @app.route("/")
