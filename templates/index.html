@@ -7,14 +7,14 @@
     <title>PDF Editor</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/bootstrap.min.css') }}">
 </head>
 
 <body>
     <div class="container shadow-lg mt-5 mb-5 p-4 rounded-4 bg-white">
         <div class="header">
             <h1 class="mb-4">PDF Editor</h1>
-            <div class="subtitle">Professional PDF processing tools with modern design</div>
+            <div class="subtitle">Personal PDF processing tools with modern design</div>
         </div>
 
         <div class="content">
@@ -41,8 +41,11 @@
                         <div class="file-input-text">Click to select PDF files or drag and drop</div>
                         <div class="file-input-subtext">Select multiple PDF files to merge into one</div>
                     </div>
+                    <button type="button" class="btn-clear" id="clearMergePdfFiles" style="display:none;">✕ Clear</button>
                 </div>
-                <button type="submit" class="btn btn-primary w-100">Merge Files</button>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">Merge Files</button>
+                </div>
             </form>
 
             <form id="splitFile" action="/split" method="post" enctype="multipart/form-data" class="mb-4">
@@ -65,8 +68,11 @@
                         <div class="file-input-text">Click to select a PDF file or drag and drop</div>
                         <div class="file-input-subtext">Split PDF into individual pages</div>
                     </div>
+                    <button type="button" class="btn-clear" id="clearSplitPdfFile" style="display:none;">✕ Clear</button>
                 </div>
-                <button type="submit" class="btn btn-success w-100">Split File</button>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-success">Split File</button>
+                </div>
             </form>
 
             <form id="extractPagesForm" action="/extract_pages" method="post" enctype="multipart/form-data"
@@ -90,6 +96,7 @@
                         <div class="file-input-text">Click to select a PDF file or drag and drop</div>
                         <div class="file-input-subtext">Extract specific pages from PDF</div>
                     </div>
+                    <button type="button" class="btn-clear" id="clearExtractPdfFile" style="display:none;">✕ Clear</button>
                 </div>
                 <div class="row g-2 mb-2">
                     <div class="col-md-6">
@@ -107,7 +114,9 @@
                     <input type="text" id="specificPages" name="specific_pages" placeholder="1,3,5,7"
                         class="form-control">
                 </div>
-                <button type="submit" class="btn btn-info w-100">Extract Pages</button>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-info">Extract Pages</button>
+                </div>
             </form>
 
             <form id="sanitizeFile" action="/sanitize" method="post" enctype="multipart/form-data" class="mb-4">
@@ -130,8 +139,11 @@
                         <div class="file-input-text">Click to select a PDF file or drag and drop</div>
                         <div class="file-input-subtext">Remove metadata and sanitize PDF</div>
                     </div>
+                    <button type="button" class="btn-clear" id="clearSanitizePdfFile" style="display:none;">✕ Clear</button>
                 </div>
-                <button type="submit" class="btn btn-warning w-100">Sanitize File</button>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-warning">Sanitize File</button>
+                </div>
             </form>
 
             <form id="compressFile" action="/compress_pdf" method="post" enctype="multipart/form-data" class="mb-4">
@@ -155,6 +167,7 @@
                         <div class="file-input-text">Click to select a PDF file or drag and drop</div>
                         <div class="file-input-subtext">Compress PDF</div>
                     </div>
+                    <button type="button" class="btn-clear" id="clearCompressPdfFiles" style="display:none;">✕ Clear</button>
                 </div>
                 <div class="row g-2 mb-2">
                     <div class="col-md-6">
@@ -162,10 +175,14 @@
                         <input type="number" id="compressionRatio" name="compression_ratio" min="1" class="form-control"
                             placeholder="1">
                     </div>
-                    <div class="form-text">1 = least compression (best quality), 9 = most compression (smallest size)
+                    <div class="col-md-6">
+                        <div class="form-text">1 = least compression (best quality), 9 = most compression (smallest size)
+                        </div>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-info w-100">Compress Files</button>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-info">Compress Files</button>
+                </div>
             </form>
             <form id="encryptFile" action="/encrypt_pdf" method="post" enctype="multipart/form-data" class="mb-4">
                 <div class="form-header">
@@ -187,16 +204,19 @@
                         <div class="file-input-text">Click to select a PDF file or drag and drop</div>
                         <div class="file-input-subtext">Encrypt PDF with password</div>
                     </div>
+                    <button type="button" class="btn-clear" id="clearEncryptPdfFile" style="display:none;">✕ Clear</button>
                 </div>
                 <div class="mb-3">
                     <label for="encryptPassword" class="form-label">Password</label>
                     <input type="password" id="encryptPassword" name="password" class="form-control" placeholder="Enter password" required>
                 </div>
-                <button type="submit" class="btn btn-warning w-100">Encrypt File</button>
+                <div class="button-group">
+                    <button type="submit" class="btn btn-warning">Encrypt File</button>
+                </div>
             </form>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='bootstrap/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts.js') }}"></script>
 </body>
 
