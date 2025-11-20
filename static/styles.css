@@ -307,14 +307,29 @@
             transform: translateY(-1px);
         }
 
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
+        /* Button loading spinner (CSS-only) */
+        .btn.loading {
+            position: relative;
+            pointer-events: none;
+        }
+
+        .btn.loading::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
             border-top-color: #ffffff;
-            margin-right: 8px;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: translateY(-50%) rotate(0deg); }
+            to   { transform: translateY(-50%) rotate(360deg); }
         }
 
         #result {
@@ -351,6 +366,13 @@
             cursor: pointer;
         }
 
+        /* Visual state when files are selected */
+        .file-input-wrapper.selected {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.05);
+            transform: translateY(-1px);
+        }
+
         .file-input-wrapper:hover {
             border-color: #667eea;
             background: rgba(102, 126, 234, 0.05);
@@ -361,6 +383,19 @@
             border-color: #667eea;
             background: rgba(102, 126, 234, 0.1);
             transform: scale(1.01);
+        }
+
+        /* Hide clear button by default; show when selected */
+        .file-input-wrapper .btn-clear {
+            display: none;
+        }
+
+        .file-input-wrapper.selected .btn-clear {
+            display: block;
+        }
+
+        .file-input-wrapper.selected .file-input-content {
+            color: #28a745;
         }
 
         .file-input-wrapper input[type="file"] {

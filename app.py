@@ -270,6 +270,55 @@ def encrypt_pdf():
     except Exception as e:
         return f"Encryption failed: {str(e)}", 500
 
+@app.post("/remove_password")
+def remove_password():
+    files = request.files.getlist("files")
+    password = request.form.get("password", "")
+
+    # Validation
+    if not files or files[0].filename == "":
+        return "No files selected", 400
+    if not password:
+        return "Password is required", 400
+    if len(password) < 4:
+        return "Password must be at least 4 characters", 400
+
+    try:
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for file in files:
+                # Validate PDF
+                if not file.filename.lower().endswith(".pdf"):
+                    continue
+
+                file_content = file.read()
+                if not file_content:
+                    continue
+
+                try:
+                    reader = PdfReader(io.BytesIO(file_content))
+                    if reader.is_encrypted:
+                        reader.decrypt(password)
+                    writer = PdfWriter()
+                    for page in reader.pages:
+                        writer.add_page(page)
+                    pdf_bytes = io.BytesIO()
+                    writer.write(pdf_bytes)
+                    pdf_bytes.seek(0)
+                    decrypted_filename = f"decrypted_{file.filename}"
+                    zip_file.writestr(decrypted_filename, pdf_bytes.read())
+                except Exception as e:
+                    return f"Failed to remove password from {file.filename}: {str(e)}", 400
+
+        zip_buffer.seek(0)
+        return send_file(
+            zip_buffer,
+            as_attachment=True,
+            download_name="decrypted_files.zip",
+            mimetype="application/zip",
+        )
+    except Exception as e:
+        return f"Decryption failed: {str(e)}", 500
 
 if __name__ == "__main__":
     app.run()
