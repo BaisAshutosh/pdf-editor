@@ -197,29 +197,78 @@ def extract_pages():
     except Exception as e:
         return f"Failed to extract pages: {str(e)}", 500
 
+
 @app.post("/compress_pdf")
 def compress_pdf():
-        files = request.files.getlist("files")
-        compression_ratio = int(request.form["compression_ratio"])
+    files = request.files.getlist("files")
+    compression_ratio = int(request.form["compression_ratio"])
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for file in files:
+            writer = PdfWriter(clone_from=io.BytesIO(file.read()))
+            for page in writer.pages:
+                page.compress_content_streams(level=compression_ratio)
+            pdf_bytes = io.BytesIO()
+            writer.write(pdf_bytes)
+            pdf_bytes.seek(0)
+            split_filename = f"{file.filename}.pdf"
+            zip_file.writestr(split_filename, pdf_bytes.read())
+    zip_buffer.seek(0)
+    return send_file(
+        zip_buffer,
+        as_attachment=True,
+        download_name="compressed_pdf.zip",
+        mimetype="application/zip",
+    )
+
+
+@app.post("/encrypt_pdf")
+def encrypt_pdf():
+    files = request.files.getlist("files")
+    password = request.form.get("password", "")
+
+    # Validation
+    if not files or files[0].filename == "":
+        return "No files selected", 400
+    if not password:
+        return "Password is required", 400
+    if len(password) < 4:
+        return "Password must be at least 4 characters", 400
+
+    try:
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
             for file in files:
-                writer = PdfWriter(clone_from=io.BytesIO(file.read()))
-                for page in writer.pages:
-                    page.compress_content_streams(level = compression_ratio)
-                pdf_bytes = io.BytesIO()
-                writer.write(pdf_bytes)
-                pdf_bytes.seek(0)
-                split_filename = f"{file.filename}.pdf"
-                zip_file.writestr(split_filename, pdf_bytes.read())
+                # Validate PDF
+                if not file.filename.lower().endswith(".pdf"):
+                    continue
+
+                file_content = file.read()
+                if not file_content:
+                    continue
+
+                try:
+                    writer = PdfWriter(clone_from=io.BytesIO(file_content))
+                    writer.encrypt(
+                        user_password=password, owner_password=None, use_128bit=True
+                    )
+                    pdf_bytes = io.BytesIO()
+                    writer.write(pdf_bytes)
+                    pdf_bytes.seek(0)
+                    encrypted_filename = f"encrypted_{file.filename}"
+                    zip_file.writestr(encrypted_filename, pdf_bytes.read())
+                except Exception as e:
+                    return f"Failed to encrypt {file.filename}: {str(e)}", 400
+
         zip_buffer.seek(0)
         return send_file(
             zip_buffer,
             as_attachment=True,
-            download_name="compressed_pdf.zip",
+            download_name="encrypted_files.zip",
             mimetype="application/zip",
         )
-        
+    except Exception as e:
+        return f"Encryption failed: {str(e)}", 500
 
 
 if __name__ == "__main__":

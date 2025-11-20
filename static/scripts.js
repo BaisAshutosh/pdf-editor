@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const splitPdfFileInput = document.getElementById('splitPdfFile');
     const sanitize = document.getElementById('sanitizeFile');
     const sanitizePdfFileInput = document.getElementById('sanitizePdfFile');
+    const encryptPdfFileInput = document.getElementById('encryptPdfFile');
 
     // Handle merge
     mergeFiles.addEventListener('submit', function (event) {
@@ -207,6 +208,55 @@ document.addEventListener('DOMContentLoaded', function () {
             .catch(error => {
                 console.error('Error:', error);
                 resultDiv.innerHTML = 'An error occurred during compression.';
+            });
+    });
+
+    // Handle encrypt
+    const encryptForm = document.getElementById('encryptFile');
+    const encryptPdfFilesInput = document.getElementById('encryptPdfFile');
+    const encryptPasswordInput = document.getElementById('encryptPassword');
+
+    encryptForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        if (encryptPdfFilesInput.files.length === 0) {
+            resultDiv.innerHTML = 'Please select at least one PDF file to encrypt.';
+            return;
+        }
+        if (!encryptPasswordInput.value.trim()) {
+            resultDiv.innerHTML = 'Please enter a password.';
+            return;
+        }
+        const formData = new FormData();
+        for (const file of encryptPdfFilesInput.files) {
+            formData.append('files', file);
+        }
+        formData.append('password', encryptPasswordInput.value);
+        fetch('/encrypt_pdf', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('Failed to encrypt PDF');
+                }
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = encodeURIComponent('encrypted_files.zip');
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                resultDiv.innerHTML = 'Encrypted PDF(s) downloaded.';
+                encryptForm.reset();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultDiv.innerHTML = 'An error occurred during encryption.';
             });
     });
 });
