@@ -66,87 +66,105 @@ def sanitize_pdf():
     output_buffer = io.BytesIO()
     try:
         with pikepdf.open(input_buffer) as pdf:
-            root = pdf.trailer.get("/Root", {})
-            for page in pdf.pages:
-                if "/Annots" in page:
-                    annots = page["/Annots"]
-                    new_annots = []
-                    for annot in annots:
-                        try:
-                            annot_obj = annot.get_object()
-                            subtype = annot_obj.get("/Subtype", None)
-                            if subtype in [
-                                "/Link",
-                                "/FileAttachment",
-                                "/RichMedia",
-                                "/Movie",
-                                "/Sound",
-                                "/3D",
-                            ]:
-                                for k in [
-                                    "/A",
-                                    "/Dest",
-                                    "/FS",
-                                    "/JS",
-                                    "/S",
-                                    "/URI",
-                                    "/Launch",
-                                    "/GoToE",
-                                    "/GoToR",
-                                ]:
-                                    if k in annot_obj:
-                                        del annot_obj[k]
-                                continue
-                            if "/JS" in annot_obj:
-                                del annot_obj["/JS"]
-                            if annot_obj.get("/S") == "/Launch":
-                                del annot_obj["/S"]
-                                continue
-                            new_annots.append(annot)
-                        except Exception:
-                            continue
-                    if new_annots:
-                        page["/Annots"] = pikepdf.Array(new_annots)
-                    else:
-                        del page["/Annots"]
-            for key in [
-                "/OpenAction",
-                "/AA",
-                "/AdditionalActions",
-                "/Action",
+            try:
+                root = pdf.trailer["/Root"]
+            except Exception:
+                root = None
+
+            DANGEROUS_KEYS = {
                 "/JS",
+                "/JavaScript",
+                "/A",
+                "/AA",
+                "/OpenAction",
+                "/Action",
                 "/Launch",
+                "/RichMedia",
+                "/EmbeddedFiles",
+                "/Filespec",
+                "/URI",
+                "/FS",
+                "/Dest",
                 "/GoToE",
                 "/GoToR",
-            ]:
-                if key in root:
-                    del root[key]
-            names = root.get("/Names")
-            if names:
-                for nkey in ["/JavaScript", "/EmbeddedFiles"]:
-                    if nkey in names:
-                        del names[nkey]
-            if "/AcroForm" in root:
-                acroform = root["/AcroForm"]
-                if "/XFA" in acroform:
-                    del acroform["/XFA"]
-                if "/JS" in acroform:
-                    del acroform["/JS"]
-                del root["/AcroForm"]
-            if "/Outlines" in root:
+                "/XFA",
+            }
 
-                def clean_outline(outline):
-                    if "/A" in outline:
-                        del outline["/A"]
-                    if "/First" in outline:
-                        clean_outline(outline["/First"])
-                    if "/Next" in outline:
-                        clean_outline(outline["/Next"])
+            def clean_object(obj):
+                """Iteratively remove dangerous keys from PDF objects using a stack.
 
+                This avoids recursion overhead and repeated `str()` conversions
+                by converting keys to strings once per key and using a seen set
+                to prevent revisiting objects.
+                """
+                seen = set()
+                stack = [(obj, 0)]
+                while stack:
+                    cur, depth = stack.pop()
+                    if depth > 100:
+                        continue
+
+                    try:
+                        obj_id = getattr(cur, "objgen", None) or id(cur)
+                    except Exception:
+                        obj_id = id(cur)
+
+                    if obj_id in seen:
+                        continue
+                    seen.add(obj_id)
+
+                    if isinstance(cur, pikepdf.Dictionary):
+                        for k in list(cur.keys()):
+                            try:
+                                k_str = str(k)
+                                if k_str in DANGEROUS_KEYS:
+                                    try:
+                                        del cur[k]
+                                    except Exception:
+                                        pass
+                                    continue
+                                try:
+                                    child = cur[k]
+                                    stack.append((child, depth + 1))
+                                except Exception:
+                                    continue
+                            except Exception:
+                                continue
+
+                    elif isinstance(cur, pikepdf.Array):
+                        for item in list(cur):
+                            stack.append((item, depth + 1))
+
+            for page in pdf.pages:
+                clean_object(page)
                 try:
-                    clean_outline(root["/Outlines"])
+                    for k in list(page.keys()):
+                        try:
+                            if str(k) == "/Annots":
+                                try:
+                                    del page[k]
+                                except Exception:
+                                    pass
+                        except Exception:
+                            continue
                 except Exception:
                     pass
+            if root is not None:
+                clean_object(root)
+                for top_key in ("/AcroForm", "/Outlines", "/Metadata", "/Names"):
+                    try:
+                        for k in list(root.keys()):
+                            try:
+                                if str(k) == top_key:
+                                    try:
+                                        del root[k]
+                                    except Exception:
+                                        pass
+                            except Exception:
+                                continue
+                    except Exception:
+                        pass
+
             pdf.save(output_buffer)
     except Exception as e:
         return f"Failed to sanitize PDF: {str(e)}", 500
@@ -270,6 +288,7 @@ def encrypt_pdf():
     except Exception as e:
         return f"Encryption failed: {str(e)}", 500
 
+
 @app.post("/remove_password")
 def remove_password():
     files = request.files.getlist("files")
@@ -308,7 +327,10 @@ def remove_password():
                     decrypted_filename = f"decrypted_{file.filename}"
                     zip_file.writestr(decrypted_filename, pdf_bytes.read())
                 except Exception as e:
-                    return f"Failed to remove password from {file.filename}: {str(e)}", 400
+                    return (
+                        f"Failed to remove password from {file.filename}: {str(e)}",
+                        400,
+                    )
 
         zip_buffer.seek(0)
         return send_file(
@@ -319,6 +341,7 @@ def remove_password():
         )
     except Exception as e:
         return f"Decryption failed: {str(e)}", 500
+
 
 if __name__ == "__main__":
     app.run()
