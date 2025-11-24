@@ -6,4 +6,4 @@ requests
 wheel
 pikepdf==10.0.2
 pymupdf==1.26.6
-pypdf==6.3.0
+pypdf==6.4.0
